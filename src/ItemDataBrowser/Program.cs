@@ -28,7 +28,7 @@ namespace ItemDataBrowser
             new Command{Name = "fd", Example = "fd(name[,Id==123456 & Class==archer])", Action = Filter, Description = "Create a filtered dataset.\r\nUse the name of xml attribute and its value to filter combine filters with '&' and '|'\r\nUse only the name parameter to load a saved filter", DisplayInHelp = true},
             new Command{Name = "dd", Example = "dd(name[,columns,...|$columnSet$])", Action = DisplayDataSet, Description = "Print the dataset to the console.\r\n[Optional] specify a list of columns.", DisplayInHelp = true},
             new Command{Name = "sf", Example = "sf(name,filter)", Action = SaveFilter, Description = "Saves a validated filter definition to the settings file.", DisplayInHelp = true},
-            new Command{Name = "lf", Example = "lf", Action = ListFilter, Description = "Lasts all saved filters.", DisplayInHelp = true},
+            new Command{Name = "lf", Example = "lf", Action = ListFilter, Description = "Lists all saved filters.", DisplayInHelp = true},
             new Command{Name = "ex", Example = "ex(name,format,target,[,columns,...|$columnSet$])", Action = Export, Description = "Export data in various formats.\r\nFormat: colList, csv, json\r\nTarget: file, console", DisplayInHelp = true},
             new Command{Name = "sc", Example = "sc(name,columns,...)", Action = SaveColumnSet, Description = "Saves a list of validated columns to the settings file.",  DisplayInHelp = true},
             new Command{Name = "lc", Example = "lc", Action = ListColumnSet, Description = "List all saved column sets", DisplayInHelp = true},
