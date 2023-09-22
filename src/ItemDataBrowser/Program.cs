@@ -31,7 +31,7 @@ namespace ItemDataBrowser
             new Command{Name = "lf", Example = "lf", Action = ListFilter, Description = "Lasts all saved filters.", DisplayInHelp = true},
             new Command{Name = "ex", Example = "ex(name,format,target,[,columns,...|$columnSet$])", Action = Export, Description = "Export data in various formats.\r\nFormat: colList, csv, json\r\nTarget: file, console", DisplayInHelp = true},
             new Command{Name = "sc", Example = "sc(name,columns,...)", Action = SaveColumnSet, Description = "Saves a list of validated columns to the settings file.",  DisplayInHelp = true},
-            new Command{Name = "sl", Example = "sl", Action = ListColumnSet, Description = "List all saved column sets", DisplayInHelp = true},
+            new Command{Name = "lc", Example = "lc", Action = ListColumnSet, Description = "List all saved column sets", DisplayInHelp = true},
             new Command{Name = "map",  Example ="map[(name)]",  Action = PrintPropertyMapping, Description = "Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd attribute names.\r\n[Optional] specify a part of a filter name to filter the list.", DisplayInHelp = true},
             new Command{Name = "help", Example = Empty, Action = PrintHelp, Description = Empty, DisplayInHelp = false}
         };
