@@ -32,8 +32,8 @@ Following operators can be used (not all are fully tested yet)
 |**==**|Equal|
 |**!=**|Not Equal|
 |**?=**|Contains or Like|
-|**SW**|Starts with|
-|**EW**|Ends with|
+|**SW**|Starts with *not tested*|
+|**EW**|Ends with *not tested*|
 |**BT**|Between (BTvalue1,value2) *not tested*|
 |**>>**|Greater|
 |**<<**|Smaller|
@@ -44,6 +44,14 @@ Following operators can be used (not all are fully tested yet)
 
 All elin costumes `CombatItemType==EQUIP_STYLE_BODY & RequiredGender==female & RequiredRace==popori`  
 All castanic male costumes `CombatItemType==EQUIP_STYLE_BODY & RequiredGender==male & RequiredRace==castanic`
+
+### Exporting
+
+The export function primarely used is `colList`, it outputs a string of one (the first) given column separated by `,`
+
+It can export as `colList`, `json` and `csv` to either a `file` or directly to `console`.  
+**Note:** `colList` only uses the first specified column in case multiple column were specified.  
+(`json` and `csv` maybe buggy depending on selected data and columns.)
 
 ### Future improvements
 - Clean up the code, its a huge mess... :P
