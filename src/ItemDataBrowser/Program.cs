@@ -23,6 +23,8 @@ namespace ItemDataBrowser
         private static readonly List<PropertyMapping> PropCache = new();
         private static readonly List<Command> Commands = new ()
         {
+            new Command{Name = "ddc", Example = "ddc", Action = DisplayDatacenter, Description = "Displays path to decrypted datacenter folder.", DisplayInHelp = true},
+            new Command{Name = "sdc", Example = "sdc(path)", Action = SaveDatacenterPath, Description = "Saves a new datacenter path to the settings file.", DisplayInHelp = true},
             new Command{Name = "fd", Example = "fd(name[,Id==123456 & Class==archer])", Action = Filter, Description = "Create a filtered dataset.\r\nUse the name of xml attribute and its value to filter combine filters with '&' and '|'\r\nUse only the name parameter to load a saved filter", DisplayInHelp = true},
             new Command{Name = "dd", Example = "dd(name[,columns,...|$columnSet$])", Action = DisplayDataSet, Description = "Print the dataset to the console.\r\n[Optional] specify a list of columns.", DisplayInHelp = true},
             new Command{Name = "sf", Example = "sf(name,filter)", Action = SaveFilter, Description = "Saves a validated filter definition to the settings file.", DisplayInHelp = true},
@@ -90,15 +92,7 @@ namespace ItemDataBrowser
 
             if (!File.Exists(filePath))
             {
-                Console.WriteLine("Enter path of the directory to a decrypted datacenter");
-                var path = Console.ReadLine();
-
-                if (IsNullOrWhiteSpace(path) || !Directory.Exists(path))
-                {
-                    Console.WriteLine("Invalid path.");
-                    Console.ReadLine();
-                    return;
-                }
+                var path = GetDatacenterPath();
 
                 Settings = new Settings
                 {
@@ -109,14 +103,40 @@ namespace ItemDataBrowser
             }
 
             using (var file = new FileStream(Path.Combine(Environment.CurrentDirectory, SettingsFile), FileMode.Open))
-            using(var reader = new StreamReader(file))
+            using (var reader = new StreamReader(file))
             {
                 var content = reader.ReadToEnd();
                 Settings = JsonConvert.DeserializeObject<Settings>(content)!;
             }
 
+            if (!Directory.Exists(Settings.DataCenter))
+            {
+                Settings.DataCenter = GetDatacenterPath();
+                SaveSettings();
+            }
+
             Console.WriteLine("[Settings] Loading done");
             Console.WriteLine($"[Settings] Datacenter: {Settings.DataCenter}");
+        }
+
+        static string GetDatacenterPath()
+        {
+            do
+            {
+                Console.WriteLine("Enter path of the directory to a decrypted datacenter");
+                var path = Console.ReadLine();
+
+                // todo: validate if its a dc path
+                if (IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                {
+                    Console.WriteLine("Invalid path.");
+                    Console.WriteLine();
+                }
+                else
+                {
+                    return path;
+                }
+            } while (true);
         }
 
         static void SaveSettings()
@@ -442,6 +462,21 @@ namespace ItemDataBrowser
             SaveSettings();
         }
 
+        static void SaveDatacenterPath(CommandInfo info)
+        {
+            if (!info.TryGetParameter(0, out string path))
+                return;
+
+            if (!Directory.Exists(path))
+            {
+                Console.WriteLine("[Error] Invalid datacenter path");
+                return;
+            }
+
+            Settings.DataCenter = path;
+            SaveSettings();
+        }
+
         static void ListFilter(CommandInfo _)
         {
             if (!Settings.Filters.Any())
@@ -552,6 +587,8 @@ namespace ItemDataBrowser
 
             Console.WriteLine(divider);
         }
+
+        static void DisplayDatacenter(CommandInfo _) => Console.WriteLine($"[Help] Datacenter path: '{Settings.DataCenter}'");
 
         static Dataset? GetDataset(string name)
         {
