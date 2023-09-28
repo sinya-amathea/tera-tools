@@ -9,17 +9,18 @@ This tool loads all ItemData-xxxxx.xml files into memory and provides functions 
 ### Commands
 |Name|Example|Description|
 |---|---|---|
-|**ddc**||Displays the datacenter path|
-|**sdc**|sdc(path)|Saves the datacenter path to settings file|
-|**fd**|fd(name\[,filter\])|Create a filtered dataset. Use the name of xml attribute and its value to filter, combine filters with '&' and '\|'. Use only the name parameter to load a saved filter|
 |**dd**|dd(name\[,column,...\|$columnSet$])|Print the dataset to the console. \[Optional\] specify a list of columns or saved column set.|
-|**sf**|sf(name,filter)|Saves a validated filter definition to the settings file.|
-|**lf**||Lists all saved filters.|
+|**ddc**||Displays the datacenter path|
 |**ex**|ex(name,format,target\[,columns,...\|$columnSet$\])|Export data in various formats. Format: colList, csv, json. Target: file, console.|
-|**sc**|sc(name,columns,...)|Saves a list of validated columns to the settings file.|
-|**lc**||List all saved column sets.|
-|**map**|map\[(name)\]|Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd xml attribute names). \[Optional\] specify a part of a filter name to filter the list.|
+|**fd**|fd(name\[,filter\])|Create a filtered dataset. Use the name of xml attribute and its value to filter, combine filters with '&' and '\|'. Use only the name parameter to load a saved filter|
 |**help**||Displays a list of commands|
+|**map**|map\[(name)\]|Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd xml attribute names). \[Optional\] specify a part of a filter name to filter the list.|
+|**lc**||List all saved column sets.|
+|**lf**||Lists all saved filters.|
+|**sc**|sc(name,columns,...)|Saves a list of validated columns to the settings file.|
+|**sdc**|sdc(path)|Saves the datacenter path to settings file|
+|**sf**|sf(name,filter)|Saves a validated filter definition to the settings file.|
+|**sn**|sn(string\[,includeToolTip])|Search an item by it's name, enclose with \" to do an exact search. \[Optional\] use true/fals to include/exclude searching in tooltips|
 
 ### Filtering
 
