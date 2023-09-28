@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,17 +20,19 @@ namespace ItemDataBrowser
         private const string SettingsFile = "settings.json";
 
         private static readonly Regex BasicCommand = new(@"^([a-z]+)(?:\((.+)\))?$", RegexOptions.Compiled);
-        private static readonly List<ItemData> Items = new();
+        private static readonly ConcurrentBag<ItemData> Items = new();
+        private static readonly ConcurrentBag<StringSheetItem> ItemStrings = new();
         private static readonly List<PropertyMapping> PropCache = new();
         private static readonly List<Command> Commands = new ()
         {
+            new Command{Name= "sn", Example = "sn(string[,includeTooltip])", Action = SearchItem, Description = "Search an item by it's name, enclose with \" to do an exact search. [Optional] and tooltip", DisplayInHelp = true},
             new Command{Name = "ddc", Example = "ddc", Action = DisplayDatacenter, Description = "Displays path to decrypted datacenter folder.", DisplayInHelp = true},
             new Command{Name = "sdc", Example = "sdc(path)", Action = SaveDatacenterPath, Description = "Saves a new datacenter path to the settings file.", DisplayInHelp = true},
             new Command{Name = "fd", Example = "fd(name[,Id==123456 & Class==archer])", Action = Filter, Description = "Create a filtered dataset.\r\nUse the name of xml attribute and its value to filter combine filters with '&' and '|'\r\nUse only the name parameter to load a saved filter", DisplayInHelp = true},
             new Command{Name = "dd", Example = "dd(name[,columns,...|$columnSet$])", Action = DisplayDataSet, Description = "Print the dataset to the console.\r\n[Optional] specify a list of columns.", DisplayInHelp = true},
             new Command{Name = "sf", Example = "sf(name,filter)", Action = SaveFilter, Description = "Saves a validated filter definition to the settings file.", DisplayInHelp = true},
             new Command{Name = "lf", Example = "lf", Action = ListFilter, Description = "Lists all saved filters.", DisplayInHelp = true},
-            new Command{Name = "ex", Example = "ex(name,format,target,[,columns,...|$columnSet$])", Action = Export, Description = "Export data in various formats.\r\nFormat: colList, csv, json\r\nTarget: file, console", DisplayInHelp = true},
+            new Command{Name = "ex", Example = "ex(name,format,target[,columns,...|$columnSet$])", Action = Export, Description = "Export data in various formats.\r\nFormat: colList, csv, json\r\nTarget: file, console", DisplayInHelp = true},
             new Command{Name = "sc", Example = "sc(name,columns,...)", Action = SaveColumnSet, Description = "Saves a list of validated columns to the settings file.",  DisplayInHelp = true},
             new Command{Name = "lc", Example = "lc", Action = ListColumnSet, Description = "List all saved column sets", DisplayInHelp = true},
             new Command{Name = "map",  Example ="map[(name)]",  Action = PrintPropertyMapping, Description = "Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd attribute names.\r\n[Optional] specify a part of a filter name to filter the list.", DisplayInHelp = true},
@@ -58,13 +61,21 @@ namespace ItemDataBrowser
 
         static void Main(string[] args)
         {
-            Console.Title = "TERA ItemData Browser (v 0.1)";
+            Console.Title = "TERA ItemData Browser (v 0.2)";
             ShowWindow(GetConsoleWindow(), 3);
 
             ReadSettings();
             SetupCache();
             Console.WriteLine("----------------------------------------------------------------");
-            LoadItemData(Settings.DataCenter);
+
+            var loadingTasks = new List<Task>
+            {
+                new Task(() => LoadItemData(Settings.DataCenter)),
+                new Task(() => LoadStringSheets(Settings.DataCenter))
+            };
+
+            loadingTasks.ForEach(t => t.Start());
+            Task.WaitAll(loadingTasks.ToArray());
             MainLoop();
         }
 
@@ -143,8 +154,7 @@ namespace ItemDataBrowser
         {
             try
             {
-                using (var file = new FileStream(Path.Combine(Environment.CurrentDirectory, SettingsFile),
-                           FileMode.OpenOrCreate))
+                using (var file = new FileStream(Path.Combine(Environment.CurrentDirectory, SettingsFile), FileMode.OpenOrCreate))
                 using (var writer = new StreamWriter(file))
                 {
                     var content = JsonConvert.SerializeObject(Settings, Formatting.Indented);
@@ -163,14 +173,39 @@ namespace ItemDataBrowser
         static void LoadItemData(string path)
         {
             var itemDataPath = Path.Combine(path, ItemDataFolder);
+            var taskList = new List<Task>();
 
             foreach (var file in Directory.EnumerateFiles(itemDataPath, "ItemData-?????.xml", SearchOption.TopDirectoryOnly))
             {
-                Console.WriteLine($"[{GetFileName(file)}] Loading...");
-                ParseXml(file);
+                taskList.Add(new Task(() =>
+                {
+                    Console.WriteLine($"[{GetFileName(file)}] Loading...");
+                    ParseItemDataXml(file);
+                }));
             }
 
+            taskList.ForEach(t => t.Start());
+            Task.WaitAll(taskList.ToArray());
             Console.WriteLine($"[ItemData] Loaded {Items.Count} items");
+        }
+
+        static void LoadStringSheets(string path)
+        {
+            var stringSheetPath = Path.Combine(path, StrSheetItemFolder);
+            var taskList = new List<Task>();
+            
+            foreach (var file in Directory.EnumerateFiles(stringSheetPath, "StrSheet_Item-?????.xml", SearchOption.TopDirectoryOnly))
+            {
+                taskList.Add(new Task(() =>
+                {
+                    Console.WriteLine($"[{GetFileName(file)}] Loading...");
+                    ParseStringSheetXml(file);
+                }));
+            }
+
+            taskList.ForEach(t => t.Start());
+            Task.WaitAll(taskList.ToArray());
+            Console.WriteLine($"[StringSheet] Loaded {ItemStrings.Count} string definitions");
         }
 
         static void MainLoop()
@@ -341,6 +376,115 @@ namespace ItemDataBrowser
             ExportToTarget[target].Invoke(formatted, name, format);
         }
 
+        static void SearchItem(CommandInfo info)
+        {
+            if (!info.TryGetParameter(0, out string value))
+                return;
+
+            var includeTooltip = false;
+
+            if (info.HasParameter(1) && info.TryGetParameter(1, out string tmp))
+                includeTooltip = tmp.ToLower() == "true";
+
+            List<StringSheetItem> strings;
+
+            if (includeTooltip)
+            {
+                // no word splitting here, filter engine cant handle prioritized filtering
+                // example '(Name?=word1 & Name?=word2) | (ToolTip?=word1 & ToolTip?=word2)'
+                if (value.StartsWith("\"") && value.EndsWith("\""))
+                    value = value.Replace("\"", "");
+
+                strings = ItemStrings
+                    .Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) || 
+                                (!IsNullOrWhiteSpace(x.ToolTip) && x.ToolTip.Contains(value, StringComparison.InvariantCultureIgnoreCase)))
+                    .ToList();
+            }
+            else
+            {
+                if (value.StartsWith("\"") && value.EndsWith("\""))
+                {
+                    strings = ItemStrings
+                        .Where(x => x.Name.Contains(value.Replace("\"", ""), StringComparison.InvariantCultureIgnoreCase))
+                        .ToList();
+                }
+                else
+                {
+                    var filterString = Empty;
+                    var words = value.Split(' ');
+
+                    for (var i = 0; i < words.Length; i++)
+                    {
+                        var word = words[i];
+
+                        filterString += $"Name?={word}";
+
+                        if (i < words.Length - 1)
+                            filterString += " & ";
+                    }
+
+                    var filter = FilterBuilder.Get<StringSheetItem>(filterString);
+
+                    if (filter == null)
+                    {
+                        Console.WriteLine($"[Error] Could not build filter.");
+                        return;
+                    }
+
+                    strings = ItemStrings
+                        .Where(filter.Compile())
+                        .ToList();
+                }
+            }
+
+            if (!strings.Any())
+            {
+                Console.WriteLine("[Search] No results found");
+                return;
+            }
+
+            foreach (var itemString in strings)
+            {
+                Console.WriteLine($"[{itemString.Id}] {itemString.Name}");
+
+                if (!IsNullOrWhiteSpace(itemString.ToolTip))
+                    WriteToMultipleLines(itemString.ToolTip);
+
+                Console.WriteLine();
+            }
+        }
+
+        static void WriteToMultipleLines(string input)
+        {
+            const int maxLength = 100;
+
+            if (input.Length <= maxLength)
+            {
+                Console.WriteLine(input);
+                return;
+            }
+
+            var words = input.Split(' ');
+            var currentLength = 0;
+            var tmpOut = Empty;
+
+            foreach (var word in words)
+            {
+                if (currentLength + word.Length > maxLength)
+                {
+                    Console.WriteLine(tmpOut);
+                    currentLength = 0;
+                    tmpOut = Empty;
+                }
+
+                tmpOut += currentLength > 0 ? $" {word}" : word;
+                currentLength += word.Length;
+            }
+
+            if (currentLength > 0)
+                Console.WriteLine(tmpOut);
+        }
+        
         static ColumnSet GetColumnList(CommandInfo info, int startIndex)
         {
             var columnSetMatch = new Regex(@"^(?:\$([\w\d]+)\$)$", RegexOptions.Compiled);
@@ -662,7 +806,7 @@ namespace ItemDataBrowser
                 Console.WriteLine($"[Help] {mapping.Property.Name} => {mapping.AttributeName}");
         }
 
-        static void ParseXml(string path)
+        static void ParseItemDataXml(string path)
         {
             var document = new XmlDocument();
 
@@ -731,6 +875,61 @@ namespace ItemDataBrowser
                     }
 
                     Items.Add(item);
+                    loadedItems++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+
+            Console.WriteLine($"[{GetFileName(path)}] Loaded {loadedItems}/{itemNodes.Count} items");
+        }
+
+        static void ParseStringSheetXml(string path)
+        {
+            var document = new XmlDocument();
+
+            document.Load(path);
+            var root = document.DocumentElement;
+
+            if (root == null)
+            {
+                Console.WriteLine($"[{GetFileName(path)}] Invalid document.");
+                return;
+            }
+
+            var nsMan = new XmlNamespaceManager(document.NameTable);
+
+            nsMan.AddNamespace("i", "https://vezel.dev/novadrop/dc/StrSheet_Item");
+
+            var itemNodes = root.SelectNodes("/i:StrSheet_Item/i:String", nsMan);
+
+            if (itemNodes == null || itemNodes.Count == 0)
+            {
+                Console.WriteLine($"[{GetFileName(path)}] No item data found.");
+                return;
+            }
+
+            var loadedItems = 0;
+
+            foreach (XmlNode itemNode in itemNodes)
+            {
+                try
+                {
+                    var idAttrVal = itemNode?.Attributes?["id"]?.Value;
+                    var nameAttrVal = itemNode?.Attributes?["string"]?.Value ?? Empty;
+                    var toolTipAttrVal = itemNode?.Attributes?["toolTip"]?.Value;
+
+                    if (IsNullOrWhiteSpace(idAttrVal) || !Int32.TryParse(idAttrVal, out int idValue))
+                        continue;
+
+                    ItemStrings.Add(new StringSheetItem
+                    {
+                        Id = idValue,
+                        Name = nameAttrVal,
+                        ToolTip = toolTipAttrVal
+                    });
                     loadedItems++;
                 }
                 catch (Exception ex)

@@ -14,6 +14,8 @@ namespace ItemDataBrowser
 
         private readonly List<ParsingError> _errors = new();
 
+        private static ConstantExpression _stringComparisonExpression = Expression.Constant(StringComparison.CurrentCultureIgnoreCase, typeof(StringComparison));
+
         public bool Validate<TEntity>(string filter)
         {
             _errors.Clear();
@@ -109,10 +111,11 @@ namespace ItemDataBrowser
                             var containsMethod = typeof(String)
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.Contains) &&
-                                            m.GetParameters().Length == 1 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String));
+                                            m.GetParameters().Length == 2 &&
+                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
-                            tempExpression = Expression.Call(propertyExpression, containsMethod, likeConstantExpression);
+                            tempExpression = Expression.Call(propertyExpression, containsMethod, likeConstantExpression, _stringComparisonExpression);
                             break;
                         case FilterFunction.StartsWith:
                             var startsWithConstantExpression = Expression.Constant($"{value0}", property.PropertyType);
@@ -120,9 +123,10 @@ namespace ItemDataBrowser
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.StartsWith) &&
                                             m.GetParameters().Length == 1 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String));
+                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
-                            tempExpression = Expression.Call(propertyExpression, startsWithMethod, startsWithConstantExpression);
+                            tempExpression = Expression.Call(propertyExpression, startsWithMethod, startsWithConstantExpression, _stringComparisonExpression);
                             break;
                         case FilterFunction.EndsWith:
                             var endsWithConstantExpression = Expression.Constant($"{value0}", property.PropertyType);
@@ -130,9 +134,10 @@ namespace ItemDataBrowser
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.EndsWith) &&
                                             m.GetParameters().Length == 1 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String));
+                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
-                            tempExpression = Expression.Call(propertyExpression, endsWithMethod, endsWithConstantExpression);
+                            tempExpression = Expression.Call(propertyExpression, endsWithMethod, endsWithConstantExpression, _stringComparisonExpression);
                             break;
                         case FilterFunction.Greater:
                             tempExpression = Expression.GreaterThan(propertyExpression, constant0Expression);

@@ -1,4 +1,5 @@
-﻿using static System.String;
+﻿using System.Reflection.Metadata;
+using static System.String;
 
 namespace ItemDataBrowser.Objects;
 
@@ -24,7 +25,8 @@ public class CommandInfo
             Console.WriteLine($"[Error] Invalid parameter value at index {index}");
             return false;
         }
-
         return true;
     }
+
+    public bool HasParameter(int index) => index > 0 && index < Parameters.Count && !IsNullOrWhiteSpace(Parameters[index]);
 }
