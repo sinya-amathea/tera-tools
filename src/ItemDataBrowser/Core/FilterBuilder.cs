@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 
-namespace ItemDataBrowser
+namespace ItemDataBrowser.Core
 {
     public class FilterBuilder
     {
@@ -25,7 +25,7 @@ namespace ItemDataBrowser
             return !_errors.Any();
         }
 
-        public Expression<Func<TEntity, bool>>? Get<TEntity>(string filter)
+        public Expression<Func<TEntity, bool>>? Build<TEntity>(string filter)
             where TEntity : class
         {
             _errors.Clear();
@@ -38,7 +38,7 @@ namespace ItemDataBrowser
             return BuildExpression<TEntity>(filterDataCollection);
         }
 
-        public LambdaExpression? Get(Type type, string filter)
+        public LambdaExpression? Build(Type type, string filter)
         {
             _errors.Clear();
 
@@ -108,33 +108,33 @@ namespace ItemDataBrowser
                             break;
                         case FilterFunction.Like:
                             var likeConstantExpression = Expression.Constant($"{value0}", property.PropertyType);
-                            var containsMethod = typeof(String)
+                            var containsMethod = typeof(string)
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.Contains) &&
                                             m.GetParameters().Length == 2 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[0].ParameterType == typeof(string) &&
                                             m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
                             tempExpression = Expression.Call(propertyExpression, containsMethod, likeConstantExpression, _stringComparisonExpression);
                             break;
                         case FilterFunction.StartsWith:
                             var startsWithConstantExpression = Expression.Constant($"{value0}", property.PropertyType);
-                            var startsWithMethod = typeof(String)
+                            var startsWithMethod = typeof(string)
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.StartsWith) &&
                                             m.GetParameters().Length == 1 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[0].ParameterType == typeof(string) &&
                                             m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
                             tempExpression = Expression.Call(propertyExpression, startsWithMethod, startsWithConstantExpression, _stringComparisonExpression);
                             break;
                         case FilterFunction.EndsWith:
                             var endsWithConstantExpression = Expression.Constant($"{value0}", property.PropertyType);
-                            var endsWithMethod = typeof(String)
+                            var endsWithMethod = typeof(string)
                                 .GetMethods()
                                 .First(m => m.Name == nameof(String.EndsWith) &&
                                             m.GetParameters().Length == 1 &&
-                                            m.GetParameters()[0].ParameterType == typeof(String) &&
+                                            m.GetParameters()[0].ParameterType == typeof(string) &&
                                             m.GetParameters()[1].ParameterType == typeof(StringComparison));
 
                             tempExpression = Expression.Call(propertyExpression, endsWithMethod, endsWithConstantExpression, _stringComparisonExpression);
@@ -185,14 +185,14 @@ namespace ItemDataBrowser
 
         private object PrepareValue(string value, Type targetType)
         {
-            if (targetType == typeof(String))
+            if (targetType == typeof(string))
                 return value.Replace("\'", "");
 
-            if (targetType == typeof(Boolean))
+            if (targetType == typeof(bool))
                 return value.ToLower() == "true";
 
-            if (targetType == typeof(Int32))
-                return Int32.Parse(value);
+            if (targetType == typeof(int))
+                return int.Parse(value);
 
             throw new ParseException(nameof(PrepareValue), $"Type '{targetType.Name}' can not be handled.");
         }

@@ -1,8 +1,10 @@
 ﻿namespace ItemDataBrowser.Objects
 {
-    public class Settings
+    public class Options
     {
         public string DataCenter { get; set; }
+
+        public bool AutoFullScreen { get; set; }
 
         public List<NamedFilter> Filters { get; set; } = new();
 
