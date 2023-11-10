@@ -3,7 +3,7 @@ Various tools to work with TERA related data
 
 ## ItemDataBrowser
 
-This tool loads all ItemData-xxxxx.xml files into memory and provides functions to filter and export item data.
+This tool loads all ItemData-xxxxx.xml and StrSheet_Item-xxxxx.xml files into memory and provides functions to filter and export item data.
 
 
 ### Commands
@@ -14,9 +14,9 @@ This tool loads all ItemData-xxxxx.xml files into memory and provides functions 
 |**ex**|ex(name,format,target\[,columns,...\|$columnSet$\])|Export data in various formats. Format: colList, csv, json. Target: file, console.|
 |**fd**|fd(name\[,filter\])|Create a filtered dataset. Use the name of xml attribute and its value to filter, combine filters with '&' and '\|'. Use only the name parameter to load a saved filter|
 |**help**||Displays a list of commands|
-|**map**|map\[(name)\]|Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd xml attribute names). \[Optional\] specify a part of a filter name to filter the list.|
 |**lc**||List all saved column sets.|
 |**lf**||Lists all saved filters.|
+|**map**|map\[(name)\]|Get a list of filter property to xml attribute mapping (filter properties usually are just PascalCase'd xml attribute names). \[Optional\] specify a part of a filter name to filter the list.|
 |**sc**|sc(name,columns,...)|Saves a list of validated columns to the settings file.|
 |**sdc**|sdc(path)|Saves the datacenter path to settings file|
 |**sf**|sf(name,filter)|Saves a validated filter definition to the settings file.|
@@ -55,6 +55,5 @@ It can export as `colList`, `json` and `csv` to either a `file` or directly to `
 (`json` and `csv` maybe buggy depending on selected data and columns.)
 
 ### Future improvements
-- Clean up the code, its a huge mess... :P
-- Load StrSheet_Item-xxxxx.xml files and add functions to search by item name and description
 - Test and improve filter function
+- Ability to build DC with novadrop
